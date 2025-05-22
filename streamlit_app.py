@@ -11,7 +11,11 @@ st.set_page_config(
 )
 
 # Define API URL - will use local endpoint or environment variable
+# For Render deployment, the API is on the same host but different port
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+# If running in production (like Render), use the current host
+if os.getenv("RENDER", "false").lower() == "true":
+    API_URL = "http://localhost:8000"  # Within the container, the API is at localhost:8000
 
 # Initialize session state for conversation history
 if "conversation_id" not in st.session_state:
