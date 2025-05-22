@@ -12,13 +12,27 @@ st.set_page_config(
 
 # Define API URL handling to work in various hosting environments
 def get_api_url():
-    # Always use localhost:8000 for the internal API
-    # This is the most reliable approach when both services
-    # run in the same container, as they do on Render
+    # Check environment variable first
+    api_url = os.environ.get("API_URL")
+    if api_url:
+        return api_url
+    
+    # Default to localhost:8000
     return "http://localhost:8000"
 
 API_URL = get_api_url()
 print(f"Using API URL: {API_URL}")
+
+# Add health check to verify API is running
+def check_api_health():
+    try:
+        response = requests.get(f"{API_URL}/health", timeout=5)
+        if response.status_code == 200:
+            return True
+        return False
+    except Exception as e:
+        print(f"API health check failed: {e}")
+        return False
 
 # Print debugging info about environment
 import sys
@@ -94,35 +108,47 @@ if prompt := st.chat_input("Ask me anything..."):
     # Add conversation ID if exists
     if st.session_state.conversation_id:
         payload["conversation_id"] = st.session_state.conversation_id
-    
-    # Create a placeholder for the assistant's response
+      # Create a placeholder for the assistant's response
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         message_placeholder.markdown("Thinking...")
         
-        try:
-            # Make API call
-            response = requests.post(f"{API_URL}/chat", json=payload)
-            response.raise_for_status()  # Raise exception for HTTP errors
-            
-            # Process response
-            data = response.json()
-            st.session_state.conversation_id = data.get("conversation_id")
-            
-            # Update messages
-            messages = data.get("messages", [])
-            st.session_state.messages = messages
-            
-            # Display the latest assistant message
-            latest_assistant_message = next((msg for msg in reversed(messages) if msg.get("role") != "user"), None)
-            if latest_assistant_message:
-                message_placeholder.markdown(latest_assistant_message.get("content", ""))
-            else:
-                message_placeholder.markdown("No response received.")
+        # Check if API is healthy first
+        if not check_api_health():
+            message_placeholder.markdown("⚠️ API server is not available. Please check if the backend is running.")
+            st.error("API server is not responding. Please wait a moment and try again.")
+            st.info("Debug info: API URL is " + API_URL)
+        else:
+            try:
+                # Make API call with timeout
+                response = requests.post(f"{API_URL}/chat", json=payload, timeout=60)
+                response.raise_for_status()  # Raise exception for HTTP errors
                 
-        except Exception as e:
-            message_placeholder.markdown(f"⚠️ Error: {str(e)}")
-            st.error(f"Failed to get response: {str(e)}")
+                # Process response
+                data = response.json()
+                st.session_state.conversation_id = data.get("conversation_id")
+                
+                # Update messages
+                messages = data.get("messages", [])
+                st.session_state.messages = messages
+                
+                # Display the latest assistant message
+                latest_assistant_message = next((msg for msg in reversed(messages) if msg.get("role") != "user"), None)
+                if latest_assistant_message:
+                    message_placeholder.markdown(latest_assistant_message.get("content", ""))
+                else:
+                    message_placeholder.markdown("No response received.")
+                    
+            except requests.exceptions.ConnectionError:
+                message_placeholder.markdown("⚠️ Could not connect to the API server. The server might still be starting up.")
+                st.error("Connection to API failed. Please try again in a moment.")
+            except requests.exceptions.Timeout:
+                message_placeholder.markdown("⚠️ Request timed out. The API server took too long to respond.")
+                st.error("API request timed out. Please try again.")
+            except Exception as e:
+                message_placeholder.markdown(f"⚠️ Error: {str(e)}")
+                st.error(f"Failed to get response: {str(e)}")
+                st.info(f"Debug info: API URL={API_URL}, Payload={json.dumps(payload)}")
 
 # Footer
 st.markdown("---")

@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import signal
 
 def main():
     """
@@ -14,23 +15,30 @@ def main():
     render_port = os.environ.get("PORT")
     print(f"RENDER PORT: {render_port}")
     
-    # Start FastAPI in the background
-    print("Starting FastAPI server...")
+    # Set API port to 8000
+    api_port = 8000
+    os.environ["API_PORT"] = str(api_port)
+    
+    # Start FastAPI in the background with explicit port
+    print(f"Starting FastAPI server on port {api_port}...")
+    api_cmd = [sys.executable, "app.py", "--port", str(api_port)]
     api_process = subprocess.Popen(
-        [sys.executable, "app.py"],
+        api_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
     )
     
     # Give the API time to start
-    time.sleep(5)
+    print("Waiting for API to start...")
+    time.sleep(10)  # Increased wait time
     
     # Start Streamlit on Render's expected port
-    print("Starting Streamlit server...")
+    streamlit_port = render_port or 10000
+    print(f"Starting Streamlit server on port {streamlit_port}...")
     streamlit_cmd = [
         "streamlit", "run", "streamlit_app.py",
-        "--server.port", str(render_port or 10000),
+        "--server.port", str(streamlit_port),
         "--server.address", "0.0.0.0"
     ]
     streamlit_process = subprocess.Popen(

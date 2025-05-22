@@ -109,18 +109,18 @@ async def health_check():
     return {"status": "healthy"}
 
 if __name__ == "__main__":
-    # Get port from environment variable or use default
-    # For Render deployment, we'll use a different port for the API
-    # to avoid conflicts with the main port that Render expects
-    port = int(os.environ.get("PORT", 8000))
+    import argparse
     
-    # If we're on Render and PORT is assigned by the platform 
-    # (typically a high number like 10000), use 8000 for the API
-    if port > 9000:  # This is likely a Render assigned port
-        print(f"Detected Render environment. PORT={port}")
-        print("Starting FastAPI server on port 8000 instead")
-        port = 8000
-    else:
-        print(f"Starting FastAPI server on port {port}")
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Run the Knowledge Navigator API")
+    parser.add_argument("--port", type=int, default=8000, help="Port to run the API on")
+    args = parser.parse_args()
+    
+    # Get port from command line args or environment or default
+    port = args.port or int(os.environ.get("API_PORT", 8000))
+    
+    print(f"Starting FastAPI server on port {port}")
+    # Log more details about the environment
+    print(f"Environment variables: API_URL={os.environ.get('API_URL')}, PORT={os.environ.get('PORT')}")
         
     uvicorn.run(app, host="0.0.0.0", port=port)
