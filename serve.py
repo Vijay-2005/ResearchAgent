@@ -2,28 +2,30 @@ import os
 import subprocess
 import sys
 import time
-import signal
 
 def main():
     """
     This script runs both the FastAPI server and Streamlit app
-    in a way that's compatible with Render.
+    for Render.com deployment.
     """
     print("Starting Knowledge Navigator in Render-compatible mode...")
     
-    # Print environment info for debugging
-    render_port = os.environ.get("PORT")
+    # Get render port
+    render_port = os.environ.get("PORT", "10000")
     print(f"RENDER PORT: {render_port}")
+    
+    # Set environment variables
+    env_vars = os.environ.copy()
     
     # Set API port to 8000
     api_port = 8000
-    os.environ["API_PORT"] = str(api_port)
     
-    # Start FastAPI in the background with explicit port
+    # Start FastAPI in the background
     print(f"Starting FastAPI server on port {api_port}...")
-    api_cmd = [sys.executable, "app.py", "--port", str(api_port)]
+    api_cmd = [sys.executable, "app.py"]
     api_process = subprocess.Popen(
         api_cmd,
+        env=env_vars,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
@@ -31,24 +33,55 @@ def main():
     
     # Give the API time to start
     print("Waiting for API to start...")
-    time.sleep(10)  # Increased wait time
+    time.sleep(5)
     
-    # Start Streamlit on Render's expected port
-    streamlit_port = render_port or 10000
-    print(f"Starting Streamlit server on port {streamlit_port}...")
+    # Start Streamlit
+    print(f"Starting Streamlit server on port {render_port}...")
     streamlit_cmd = [
         "streamlit", "run", "streamlit_app.py",
-        "--server.port", str(streamlit_port),
-        "--server.address", "0.0.0.0"
+        "--server.port", render_port,
+        "--server.address", "0.0.0.0",
+        "--browser.serverAddress", "0.0.0.0",
+        "--server.enableCORS", "false",
+        "--server.enableXsrfProtection", "false"
     ]
     streamlit_process = subprocess.Popen(
         streamlit_cmd,
+        env=env_vars,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
     )
     
     # Monitor both processes
+    while True:
+        # Print API output
+        api_line = api_process.stdout.readline()
+        if api_line:
+            print(f"[API] {api_line.strip()}")
+        
+        # Print Streamlit output
+        streamlit_line = streamlit_process.stdout.readline()
+        if streamlit_line:
+            print(f"[STREAMLIT] {streamlit_line.strip()}")
+        
+        # Check if processes are still running
+        api_status = api_process.poll()
+        streamlit_status = streamlit_process.poll()
+        
+        if api_status is not None:
+            print(f"API process exited with code {api_status}")
+            break
+            
+        if streamlit_status is not None:
+            print(f"Streamlit process exited with code {streamlit_status}")
+            break
+            
+        # Short sleep to prevent CPU hogging
+        time.sleep(0.1)
+
+if __name__ == "__main__":
+    main()
     try:
         while True:
             api_output = api_process.stdout.readline()
