@@ -12,6 +12,7 @@ COPY . .
 
 # Set up environment for production
 ENV PORT=8000
+ENV STREAMLIT_PORT=8501
 ENV PYTHONUNBUFFERED=1
 ENV API_URL=http://localhost:8000
 
@@ -26,7 +27,7 @@ RUN echo "LANGCHAIN_PROJECT=knowledge-navigator" >> .env
 
 # Create startup script to run both servers
 RUN echo '#!/bin/bash' > start.sh
-RUN echo 'python app.py & streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0' >> start.sh
+RUN echo 'python app.py & streamlit run streamlit_app.py --server.port=${STREAMLIT_PORT:-8501} --server.address=0.0.0.0' >> start.sh
 RUN chmod +x start.sh
 
 # Command to run both applications
