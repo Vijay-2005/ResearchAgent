@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangGraph Agent Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+        .user {
+            background-color: #dcf8c6;
+            margin-left: 20%;
+            margin-right: 5px;
+        }
+        .assistant {
+            background-color: #f1f0f0;
+            margin-right: 20%;
+            margin-left: 5px;
+        }
+        .tool {
+            background-color: #e3f2fd;
+            margin: 5px 10%;
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+        }
+        .input-area {
+            display: flex;
+            margin-top: 10px;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            font-style: italic;
+            color: #666;
+            margin-top: 5px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .loading {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>LangGraph Agent Tester</h1>
+    <div class="chat-container" id="chat-container"></div>
+    <div class="status" id="status">Ready to chat</div>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Type your message here..." />
+        <button id="send-button">Send</button>
+        <button id="new-thread-button">New Thread</button>
+    </div>
+
+    <script>
+        // Configuration
+        const BASE_URL = 'http://127.0.0.1:2024';
+        let threadId = null;
+        let runId = null;
+        
+        // DOM elements
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const newThreadButton = document.getElementById('new-thread-button');
+        const statusEl = document.getElementById('status');
+        
+        // Initialize
+        createNewThread();
+        
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        newThreadButton.addEventListener('click', createNewThread);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        async function createNewThread() {
+            try {
+                statusEl.textContent = 'Creating new thread...';
+                const response = await fetch(`${BASE_URL}/api/threads`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                threadId = data.id;
+                
+                // Clear chat
+                chatContainer.innerHTML = '';
+                addSystemMessage('New conversation started');
+                statusEl.textContent = `Thread created: ${threadId}`;
+                
+                // Focus on input
+                userInput.focus();
+            } catch (error) {
+                statusEl.textContent = `Error: ${error.message}`;
+                console.error('Error creating thread:', error);
+            }
+        }
+        
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message || !threadId) return;
+            
+            // Add message to chat
+            addMessageToChat('user', message);
+            userInput.value = '';
+            
+            // Add loading indicator
+            const loadingId = 'loading-' + Date.now();
+            addLoadingMessage(loadingId);
+            
+            try {
+                statusEl.textContent = 'Sending message...';
+                
+                // Start a run
+                const payload = {
+                    config: {
+                        configurable: {
+                            model_name: "openai"
+                        }
+                    },
+                    input: {
+                        messages: [
+                            {
+                                role: "user",
+                                content: message
+                            }
+                        ]
+                    }
+                };
+                
+                const runResponse = await fetch(`${BASE_URL}/api/threads/${threadId}/runs/agent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const runData = await runResponse.json();
+                runId = runData.id;
+                
+                statusEl.textContent = `Processing with run: ${runId}`;
+                
+                // Poll for completion
+                await pollForCompletion(threadId, runId);
+                
+                // Get messages after completion
+                await getAndDisplayMessages();
+                
+                // Remove loading indicator
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+                
+                statusEl.textContent = 'Ready to chat';
+            } catch (error) {
+                statusEl.textContent = `Error: ${error.message}`;
+                console.error('Error sending message:', error);
+                
+                // Remove loading indicator
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+                
+                addSystemMessage('Error: ' + error.message);
+            }
+        }
+        
+        async function pollForCompletion(threadId, runId) {
+            const maxAttempts = 30;
+            let attempt = 0;
+            
+            while (attempt < maxAttempts) {
+                const response = await fetch(`${BASE_URL}/api/threads/${threadId}/runs/${runId}`);
+                const data = await response.json();
+                const status = data.status;
+                
+                statusEl.textContent = `Run status: ${status}`;
+                
+                if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+                    return;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                attempt++;
+            }
+            
+            throw new Error('Operation timed out');
+        }
+        
+        async function getAndDisplayMessages() {
+            const response = await fetch(`${BASE_URL}/api/threads/${threadId}/messages`);
+            const messages = await response.json();
+            
+            // Clear existing messages
+            chatContainer.innerHTML = '';
+            
+            // Display messages
+            for (const msg of messages) {
+                const role = msg.role;
+                let content = msg.content;
+                
+                // Handle content that's an array (for rich content)
+                if (Array.isArray(content)) {
+                    content = content
+                        .filter(part => part.type === 'text')
+                        .map(part => part.text)
+                        .join(' ');
+                }
+                
+                // Skip empty messages
+                if (!content) continue;
+                
+                addMessageToChat(role, content);
+                
+                // Display tool calls if any
+                if (msg.tool_calls && msg.tool_calls.length > 0) {
+                    for (const tool of msg.tool_calls) {
+                        addToolCall(tool);
+                    }
+                }
+            }
+            
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function addMessageToChat(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', role);
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function addToolCall(tool) {
+            const toolDiv = document.createElement('div');
+            toolDiv.classList.add('message', 'tool');
+            toolDiv.textContent = `🔧 Tool: ${tool.name}\n${JSON.stringify(tool.args, null, 2)}`;
+            chatContainer.appendChild(toolDiv);
+        }
+        
+        function addSystemMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'system');
+            messageDiv.style.backgroundColor = '#e6f7ff';
+            messageDiv.style.textAlign = 'center';
+            messageDiv.style.fontStyle = 'italic';
+            messageDiv.textContent = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function addLoadingMessage(id) {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = id;
+            loadingDiv.classList.add('message', 'assistant', 'loading');
+            loadingDiv.textContent = 'Thinking...';
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+</body>
+</html>
