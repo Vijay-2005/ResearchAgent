@@ -31,10 +31,34 @@ if not tavily_api_key:
 else:
     print(f"Using Tavily API key: {tavily_api_key[:5]}...")
 
-# Create the API wrapper
-tavily_wrapper = TavilySearchAPIWrapper(
-    tavily_api_key=tavily_api_key
-)
+# Create a default tool that doesn't require API keys
+from langchain.tools.base import BaseTool
+from typing import Any, Dict, Optional, Type
 
-# Pass the wrapper to the tool
-tools = [TavilySearchResults(api_wrapper=tavily_wrapper, max_results=1)]
+class SimpleTool(BaseTool):
+    name: str = "search"
+    description: str = "Search the web for the answer."
+    
+    def _run(self, query: str) -> Dict[str, Any]:
+        return {
+            "results": f"I would normally search for '{query}', but search is currently unavailable. Please try again later or ask me something I can answer without searching."
+        }
+
+# Try to create the API wrapper, falling back to a simple tool if it fails
+try:
+    # Create the API wrapper
+    tavily_wrapper = TavilySearchAPIWrapper(
+        tavily_api_key=tavily_api_key
+    )
+    # Test that it works
+    print("Testing Tavily API connection...")
+    test_result = tavily_wrapper.results("test query")
+    print(f"Tavily test successful: found {len(test_result)} results")
+    
+    # Pass the wrapper to the tool
+    tools = [TavilySearchResults(api_wrapper=tavily_wrapper, max_results=1)]
+except Exception as e:
+    print(f"Error initializing Tavily API: {e}")
+    # Fall back to a basic tool that doesn't require API access
+    tools = [SimpleTool()]
+    print("Using fallback search tool due to Tavily API initialization error.")

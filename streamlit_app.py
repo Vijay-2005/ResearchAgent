@@ -15,24 +15,36 @@ def get_api_url():
     # Check environment variable first
     api_url = os.environ.get("API_URL")
     if api_url:
+        print(f"Using API URL from environment: {api_url}")
         return api_url
     
-    # Default to localhost:8000
+    # In production Docker container, services run on the same host
+    # so localhost should work, but let's add retries and better error handling
+    print("No API_URL environment variable found, defaulting to localhost:8000")
     return "http://localhost:8000"
 
 API_URL = get_api_url()
 print(f"Using API URL: {API_URL}")
 
-# Add health check to verify API is running
-def check_api_health():
-    try:
-        response = requests.get(f"{API_URL}/health", timeout=5)
-        if response.status_code == 200:
-            return True
-        return False
-    except Exception as e:
-        print(f"API health check failed: {e}")
-        return False
+# Add health check to verify API is running with retries
+def check_api_health(max_retries=5, retry_delay=2):
+    """Check if the API is healthy with retries"""
+    for attempt in range(max_retries):
+        try:
+            print(f"Health check attempt {attempt+1}/{max_retries}...")
+            response = requests.get(f"{API_URL}/health", timeout=5)
+            if response.status_code == 200:
+                print("API health check successful!")
+                return True
+            print(f"API health check failed with status code: {response.status_code}")
+        except Exception as e:
+            print(f"API health check failed: {e}")
+        
+        if attempt < max_retries - 1:
+            print(f"Retrying in {retry_delay} seconds...")
+            time.sleep(retry_delay)
+    
+    return False
 
 # Print debugging info about environment
 import sys

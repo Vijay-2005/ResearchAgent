@@ -48,46 +48,91 @@ async def chat(request: Dict[str, Any] = Body(...)):
     - message: The user's message
     - model: Optional model to use ("openai" or "anthropic")
     """
-    
-    # Extract parameters from request
-    conversation_id = request.get("conversation_id", None)
-    message = request.get("message")
-    model_name = request.get("model", "openai")
-    
-    if not message:
-        raise HTTPException(status_code=400, detail="Message is required")
-    
-    # Get or create conversation history
-    if conversation_id and conversation_id in conversations:
-        messages = conversations[conversation_id]
-    else:
-        # Start a new conversation
-        messages = []
-        conversation_id = f"conv_{len(conversations) + 1}"
-    
-    # Add user message to history
-    messages.append({"role": "user", "content": message})
-    
-    # Create the initial state
-    state = AgentState(messages=messages)
-    
-    # Configure with the model
-    config = {"configurable": {"model_name": model_name}}
-    
-    # Invoke the agent
-    result = workflow.invoke(state, config=config)
-    
-    # Get the updated messages
-    updated_messages = result["messages"]
-    
-    # Save the updated conversation
-    conversations[conversation_id] = updated_messages
-    
-    # Return results
-    return {
-        "conversation_id": conversation_id,
-        "messages": updated_messages
-    }
+    try:
+        # Extract parameters from request
+        conversation_id = request.get("conversation_id", None)
+        message = request.get("message")
+        model_name = request.get("model", "openai")
+        
+        # Debug logging
+        print(f"Received chat request: model={model_name}, message={message}, conv_id={conversation_id}")
+        
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+        
+        # Get or create conversation history
+        if conversation_id and conversation_id in conversations:
+            messages = conversations[conversation_id]
+        else:
+            # Start a new conversation
+            messages = []
+            conversation_id = f"conv_{len(conversations) + 1}"
+        
+        # Add user message to history
+        messages.append({"role": "user", "content": message})
+          # Create the initial state
+        state = AgentState(messages=messages)
+        
+        # Debug environment variables
+        openai_key = os.environ.get('OPENAI_API_KEY', 'Not set')
+        tavily_key = os.environ.get('TAVILY_API_KEY', 'Not set')
+        
+        print(f"Using OPENAI_API_KEY: {openai_key[:5] + '...' if len(openai_key) > 5 else 'Not set or too short'}")
+        print(f"Using TAVILY_API_KEY: {tavily_key[:5] + '...' if len(tavily_key) > 5 else 'Not set or too short'}")
+        
+        # Check if keys are valid before proceeding
+        if openai_key == 'Not set' or len(openai_key) < 10:
+            raise ValueError("OPENAI_API_KEY is not properly set in the environment")
+          
+        # Configure with the model
+        config = {"configurable": {"model_name": model_name}}
+        
+        # Invoke the agent
+        try:
+            print(f"Invoking workflow with model: {model_name}")
+            result = workflow.invoke(state, config=config)
+            print("Workflow invocation successful")
+            
+            # Get the updated messages
+            updated_messages = result["messages"]
+            
+            # Save the updated conversation
+            conversations[conversation_id] = updated_messages
+            
+            # Return results
+            return {
+                "conversation_id": conversation_id,
+                "messages": updated_messages
+            }
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"Error during workflow invocation: {str(e)}")
+            print(error_trace)
+            
+            # Create a graceful error response
+            error_message = {"role": "assistant", "content": f"I'm sorry, I encountered an error: {str(e)}. Please try again."}
+            messages.append(error_message)
+            conversations[conversation_id] = messages
+            
+            return JSONResponse(
+                status_code=200,  # Return 200 but with error message to client
+                content={
+                    "conversation_id": conversation_id,
+                    "messages": messages,
+                    "error": str(e)
+                }
+            )
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"API error: {str(e)}")
+        print(error_trace)
+        
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Server error: {str(e)}"}
+        )
 
 @app.delete("/conversations/{conversation_id}")
 async def delete_conversation(conversation_id: str):
