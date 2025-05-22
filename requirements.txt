@@ -1,0 +1,14 @@
+# Requirements for Knowledge Navigator
+langchain>=0.0.267
+langchain-community>=0.0.11
+langchain-core>=0.1.0
+langgraph>=0.0.20
+langsmith>=0.0.57
+python-dotenv>=1.0.0
+fastapi>=0.103.1
+uvicorn>=0.23.2
+tavily-python>=0.3.0
+langchain-openai>=0.0.5
+langchain-anthropic>=0.0.1
+streamlit>=1.27.0
+requests>=2.31.0
