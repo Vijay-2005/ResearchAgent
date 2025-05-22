@@ -8,7 +8,7 @@ import uvicorn
 from typing import Dict, List, Any, Optional
 
 # Import our agent
-from my_agent.agent import workflow
+from my_agent.agent import graph  # Use the compiled graph instead of workflow
 from my_agent.utils.state import AgentState
 
 # Load environment variables first thing
@@ -83,15 +83,15 @@ async def chat(request: Dict[str, Any] = Body(...)):
         # Check if keys are valid before proceeding
         if openai_key == 'Not set' or len(openai_key) < 10:
             raise ValueError("OPENAI_API_KEY is not properly set in the environment")
-          
-        # Configure with the model
+            # Configure with the model
         config = {"configurable": {"model_name": model_name}}
         
         # Invoke the agent
         try:
-            print(f"Invoking workflow with model: {model_name}")
-            result = workflow.invoke(state, config=config)
-            print("Workflow invocation successful")
+            print(f"Invoking graph with model: {model_name}")
+            # Use the compiled graph instead of workflow
+            result = graph.invoke(state, config=config)
+            print("Graph invocation successful")
             
             # Get the updated messages
             updated_messages = result["messages"]

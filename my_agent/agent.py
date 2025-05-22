@@ -54,3 +54,8 @@ workflow.add_edge("action", "agent")
 # This compiles it into a LangChain Runnable,
 # meaning you can use it as you would any other runnable
 graph = workflow.compile()
+
+# Finally, we compile it!
+# This compiles it into a LangChain Runnable,
+# meaning you can use it as you would any other runnable
+graph = workflow.compile()

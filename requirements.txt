@@ -2,6 +2,7 @@
 langchain>=0.0.267
 langchain-community>=0.0.11
 langchain-core>=0.1.0
+# For LangGraph version >=0.0.20, we need to compile the graph before invoking
 langgraph>=0.0.20
 langsmith>=0.0.57
 python-dotenv>=1.0.0
