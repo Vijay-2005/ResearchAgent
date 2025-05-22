@@ -110,6 +110,17 @@ async def health_check():
 
 if __name__ == "__main__":
     # Get port from environment variable or use default
+    # For Render deployment, we'll use a different port for the API
+    # to avoid conflicts with the main port that Render expects
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting FastAPI server on port {port}")
+    
+    # If we're on Render and PORT is assigned by the platform 
+    # (typically a high number like 10000), use 8000 for the API
+    if port > 9000:  # This is likely a Render assigned port
+        print(f"Detected Render environment. PORT={port}")
+        print("Starting FastAPI server on port 8000 instead")
+        port = 8000
+    else:
+        print(f"Starting FastAPI server on port {port}")
+        
     uvicorn.run(app, host="0.0.0.0", port=port)

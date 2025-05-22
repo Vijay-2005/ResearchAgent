@@ -12,25 +12,18 @@ st.set_page_config(
 
 # Define API URL handling to work in various hosting environments
 def get_api_url():
-    # Check for explicit API URL configuration
-    if os.getenv("API_URL"):
-        return os.getenv("API_URL")
-    
-    # Check if running on Hugging Face Spaces
-    if os.getenv("SPACE_ID"):
-        # In HF Spaces, both services run in same container
-        return "http://localhost:8000"
-    
-    # Check if running on Render
-    if os.getenv("RENDER"):
-        # In Render, both services run in same container
-        return "http://localhost:8000"
-    
-    # Local development default
+    # Always use localhost:8000 for the internal API
+    # This is the most reliable approach when both services
+    # run in the same container, as they do on Render
     return "http://localhost:8000"
 
 API_URL = get_api_url()
 print(f"Using API URL: {API_URL}")
+
+# Print debugging info about environment
+import sys
+print(f"Python version: {sys.version}")
+print(f"Environment variables: {list(os.environ.keys())}")
 
 # Initialize session state for conversation history
 if "conversation_id" not in st.session_state:

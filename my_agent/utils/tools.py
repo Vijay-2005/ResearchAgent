@@ -24,7 +24,8 @@ if not tavily_api_key:
     try:
         with open(env_file, "r") as f:
             env_content = f.read()
-            print(f"Content of .env file (first line only):\n{env_content.split('\\n')[0]}...")
+            first_line = env_content.split('\n')[0]
+            print(f"Content of .env file (first line only):\n{first_line}...")
     except Exception as e:
         print(f"Error reading .env file: {e}")
 else:
