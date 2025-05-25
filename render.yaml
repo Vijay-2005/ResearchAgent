@@ -1,7 +1,7 @@
 services:
   # A Docker web service
   - type: web
-    name: langgraph-example
+    name: ai-research-agent
     env: docker
     plan: free
     region: oregon
@@ -13,7 +13,19 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      - key: METAPHOR_API_KEY
+        sync: false
+      - key: BROWSERLESS_API_KEY
+        sync: false
+      - key: APIFY_API_KEY
+        sync: false
+      - key: LANGCHAIN_API_KEY
+        sync: false
+      - key: LANGSMITH_API_KEY
+        sync: false
       - key: LANGCHAIN_TRACING_V2
         value: "true"
       - key: LANGCHAIN_PROJECT
-        value: "langgraph-example"
+        value: "ai-research-agent"
