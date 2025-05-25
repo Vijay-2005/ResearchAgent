@@ -37,8 +37,15 @@ for key in API_KEYS:
         print(f"⚠️ Warning: {key} not found in environment variables!")
 print("===========================\n")
 
-# Create the FastAPI app
-app = FastAPI(title="AI Research Assistant")
+# Create the FastAPI app with explicit configuration
+app = FastAPI(
+    title="AI Research Assistant",
+    description="API for AI Research Assistant",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
 
 # Add CORS middleware to allow web requests
 app.add_middleware(
@@ -55,6 +62,28 @@ conversations = {}
 @app.get("/")
 async def root():
     return {"message": "AI Research Assistant API is running. See /docs for API documentation."}
+    
+@app.get("/debug")
+async def debug_info():
+    """Return debug information about the API and route configuration"""
+    routes = [
+        {
+            "path": route.path,
+            "name": route.name,
+            "methods": route.methods
+        }
+        for route in app.routes
+    ]
+    
+    return {
+        "routes": routes,
+        "api_version": "1.0.0",
+        "environment": {
+            "port": os.environ.get("PORT", "Not set"),
+            "api_url": os.environ.get("API_URL", "Not set"),
+            "python_version": sys.version,
+        }
+    }
 
 @app.post("/chat")
 async def chat(request: Dict[str, Any] = Body(...)):
@@ -66,6 +95,8 @@ async def chat(request: Dict[str, Any] = Body(...)):
     - message: The user's message
     - model: Optional model to use ("openai" or "anthropic")
     """
+    print("POST /chat endpoint called with body:", request)
+    
     try:
         # Extract parameters from request
         conversation_id = request.get("conversation_id", None)
@@ -202,9 +233,17 @@ async def api_status():
     
     return api_status
 
+# Make sure all routes are explicitly registered
+def register_routes():
+    print("Registered API routes:")
+    for route in app.routes:
+        print(f" - {route.path} [{', '.join(route.methods if route.methods else [''])}]")
+
+# Register routes explicitly for clarity
+register_routes()
+
 if __name__ == "__main__":
-    import argparse
-      # Get port from environment variable (for cloud deployment) with fallback to 8000
+    # Get port from environment variable (for cloud deployment) with fallback to 8000
     port = int(os.environ.get("PORT", 8000))
     
     print(f"Starting FastAPI server on port {port}")

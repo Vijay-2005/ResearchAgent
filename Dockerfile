@@ -33,5 +33,5 @@ RUN python -c "import sys; print(f'Python version: {sys.version}')"
 # Expose the API port
 EXPOSE 8000
 
-# Run environment setup and then just the FastAPI application
-CMD ["/bin/bash", "-c", "./init_env.sh && python app.py"]
+# Run environment setup and the FastAPI application using production ASGI server
+CMD ["/bin/bash", "-c", "./init_env.sh && uvicorn app:app --host 0.0.0.0 --port $PORT"]
