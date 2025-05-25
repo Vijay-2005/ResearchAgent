@@ -1,7 +1,8 @@
 from functools import lru_cache
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
-from my_agent.utils.tools import tools
+# from my_agent.utils.tools import tools
+from my_agent.utils.research_tools import research_tools as tools
 from langgraph.prebuilt import ToolNode
 
 
@@ -91,12 +92,24 @@ def should_continue(state):
         return "continue"
 
 
-system_prompt = """Be a helpful assistant"""
+# Update the system prompt to include Apify capability
+SYSTEM_PROMPT = """You are an AI research assistant with multiple specialized tools.
+
+Please use the following tools for specific research needs:
+- tavily_search: For general web search and basic information
+- serper_search: For credible academic information, research papers, and scientific data. Use this for climate change research, medical information, and academic topics.
+- metaphor_search: For finding recent blog posts, articles, and trending content. Use this for discovering the latest industry trends, technology news, and recent discussions.
+- browse_web: For extracting content from a specific webpage
+- apify_scraper: For scraping structured data from websites including e-commerce sites
+
+When a user asks about research from credible sources, ALWAYS use serper_search.
+When a user asks about recent blog posts or trends, ALWAYS use metaphor_search.
+"""
 
 # Define the function that calls the model
 def call_model(state, config):
     messages = state["messages"]
-    messages = [{"role": "system", "content": system_prompt}] + messages
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
     # Use OpenAI as default instead of anthropic
     model_name = config.get('configurable', {}).get("model_name", "openai")
     model = _get_model(model_name)
@@ -106,3 +119,23 @@ def call_model(state, config):
 
 # Define the function to execute tools
 tool_node = ToolNode(tools)
+
+def select_tool(query: str) -> str:
+    """Suggest which tool to use based on the query content."""
+    query_lower = query.lower()
+    
+    # Rule-based tool selection
+    if any(term in query_lower for term in ["scrape", "extract", "product", "amazon"]):
+        return "apify_scraper"
+    
+    if any(term in query_lower for term in ["research", "credible", "scientific", "academic", "paper", "study", "climate"]):
+        return "serper_search"
+        
+    if any(term in query_lower for term in ["blog", "recent", "trend", "latest", "article", "post"]):
+        return "metaphor_search"
+        
+    if any(term in query_lower for term in ["browse", "visit", "webpage", "website"]):
+        return "browse_web"
+        
+    # Default to Tavily
+    return "tavily_search"

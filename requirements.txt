@@ -1,15 +1,30 @@
 # Requirements for Knowledge Navigator
-langchain>=0.0.267
-langchain-community>=0.0.11
-langchain-core>=0.1.0
-# For LangGraph version >=0.0.20, we need to compile the graph before invoking
-langgraph>=0.0.20
-langsmith>=0.0.57
-python-dotenv>=1.0.0
-fastapi>=0.103.1
-uvicorn>=0.23.2
-tavily-python>=0.3.0
-langchain-openai>=0.0.5
-langchain-anthropic>=0.0.1
-streamlit>=1.27.0
-requests>=2.31.0
+
+# LangChain core modules
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langchain-anthropic
+langsmith
+
+# LangGraph
+langgraph>=0.0.20  # Make sure to compile the graph before invoking
+
+# API and deployment
+fastapi
+uvicorn
+streamlit
+
+# Environment and utilities
+python-dotenv
+requests
+
+# Research and web scraping tools
+google-search-results  # SerpAPI
+metaphor-python        # Optional
+beautifulsoup4
+tavily-python
+
+
+apify-client

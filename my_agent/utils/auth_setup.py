@@ -3,16 +3,13 @@ This module sets up authentication for various services used in the agent.
 Import this module first, before any other imports, to ensure environment variables are set.
 """
 import os
-import sys
 from pathlib import Path
-
-# Find the root directory of the project
-ROOT_DIR = Path(__file__).parent.parent.parent
-ENV_FILE = ROOT_DIR / '.env'
 
 def setup_environment():
     """Set up environment variables from .env file."""
     from dotenv import load_dotenv
+    
+    ENV_FILE = "C:\\Users\\Admin\\vijay\\Ai researchher\\langgraph-example\\.env"
     
     # Load .env file
     print(f"Loading environment variables from: {ENV_FILE}")
@@ -22,12 +19,16 @@ def setup_environment():
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_PROJECT"] = "langgraph-example"
     
-    # Validate keys are loaded
+    # Validate keys are loaded - match API_KEYS from app.py
     keys = {
         "TAVILY_API_KEY": os.environ.get("TAVILY_API_KEY"),
-        "LANGSMITH_API_KEY": os.environ.get("LANGSMITH_API_KEY"),
         "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
-        "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY")
+        "SERPER_API_KEY": os.environ.get("SERPER_API_KEY"),
+        "METAPHOR_API_KEY": os.environ.get("METAPHOR_API_KEY"),
+        "BROWSERLESS_API_KEY": os.environ.get("BROWSERLESS_API_KEY"),
+        "APIFY_API_KEY": os.environ.get("APIFY_API_KEY"),
+        "LANGCHAIN_API_KEY": os.environ.get("LANGCHAIN_API_KEY"),
+        "LANGSMITH_API_KEY": os.environ.get("LANGSMITH_API_KEY")
     }
     
     # Print loaded keys (first 5 characters only for security)

@@ -14,13 +14,31 @@ from my_agent.utils.state import AgentState
 # Load environment variables first thing
 load_dotenv()
 
-# Verify keys are available
-for key in ["TAVILY_API_KEY", "OPENAI_API_KEY"]:
-    if not os.environ.get(key):
-        print(f"Warning: {key} not found in environment variables!")
+# All API keys to verify
+API_KEYS = [
+    "TAVILY_API_KEY", 
+    "OPENAI_API_KEY",
+    "SERPER_API_KEY",
+    "METAPHOR_API_KEY", 
+    "BROWSERLESS_API_KEY",
+    "APIFY_API_KEY",
+    "LANGCHAIN_API_KEY",
+    "LANGSMITH_API_KEY"
+]
+
+# Verify all keys are available
+print("\n===== API KEYS STATUS =====")
+for key in API_KEYS:
+    value = os.environ.get(key)
+    if value:
+        masked_value = value[:5] + "..." + value[-4:] if len(value) > 10 else "***"
+        print(f"✅ {key}: {masked_value}")
+    else:
+        print(f"⚠️ Warning: {key} not found in environment variables!")
+print("===========================\n")
 
 # Create the FastAPI app
-app = FastAPI(title="Knowledge Navigator")
+app = FastAPI(title="AI Research Assistant")
 
 # Add CORS middleware to allow web requests
 app.add_middleware(
@@ -36,7 +54,7 @@ conversations = {}
 
 @app.get("/")
 async def root():
-    return {"message": "Knowledge Navigator API is running. See /docs for API documentation."}
+    return {"message": "AI Research Assistant API is running. See /docs for API documentation."}
 
 @app.post("/chat")
 async def chat(request: Dict[str, Any] = Body(...)):
@@ -70,20 +88,24 @@ async def chat(request: Dict[str, Any] = Body(...)):
         
         # Add user message to history
         messages.append({"role": "user", "content": message})
-          # Create the initial state
+        
+        # Create the initial state
         state = AgentState(messages=messages)
         
-        # Debug environment variables
+        # Debug environment variables - show status for all keys
+        print("\n----- Using API Keys -----")
+        for key_name in API_KEYS:
+            key_value = os.environ.get(key_name, 'Not set')
+            mask = key_value[:5] + '...' + key_value[-4:] if len(key_value) > 10 else 'Not set or too short'
+            print(f"Using {key_name}: {mask}")
+        print("--------------------------\n")
+        
+        # Check if essential keys are valid before proceeding
         openai_key = os.environ.get('OPENAI_API_KEY', 'Not set')
-        tavily_key = os.environ.get('TAVILY_API_KEY', 'Not set')
-        
-        print(f"Using OPENAI_API_KEY: {openai_key[:5] + '...' if len(openai_key) > 5 else 'Not set or too short'}")
-        print(f"Using TAVILY_API_KEY: {tavily_key[:5] + '...' if len(tavily_key) > 5 else 'Not set or too short'}")
-        
-        # Check if keys are valid before proceeding
         if openai_key == 'Not set' or len(openai_key) < 10:
             raise ValueError("OPENAI_API_KEY is not properly set in the environment")
-            # Configure with the model
+            
+        # Configure with the model
         config = {"configurable": {"model_name": model_name}}
         
         # Invoke the agent
@@ -151,13 +173,40 @@ async def list_conversations():
 @app.get("/health")
 async def health_check():
     """Check if the API is healthy"""
-    return {"status": "healthy"}
+    # Return detailed status about API keys
+    status = {key: bool(os.environ.get(key)) for key in API_KEYS}
+    status["api"] = "healthy"
+    return status
+
+@app.get("/api-status")
+async def api_status():
+    """Get detailed status of configured APIs"""
+    api_status = {}
+    
+    # Check all API keys
+    for key in API_KEYS:
+        value = os.environ.get(key)
+        api_status[key] = {
+            "configured": bool(value),
+            "length": len(value) if value else 0,
+            "valid_format": len(value) > 10 if value else False
+        }
+    
+    # Check tools from research_tools
+    try:
+        from my_agent.utils.research_tools import research_tools
+        api_status["available_tools"] = [tool.name for tool in research_tools]
+        api_status["tool_count"] = len(research_tools)
+    except ImportError:
+        api_status["available_tools"] = "Error: Could not import research_tools"
+    
+    return api_status
 
 if __name__ == "__main__":
     import argparse
     
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Run the Knowledge Navigator API")
+    parser = argparse.ArgumentParser(description="Run the AI Research Assistant API")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the API on")
     args = parser.parse_args()
     
