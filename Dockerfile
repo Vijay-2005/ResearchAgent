@@ -25,14 +25,13 @@ RUN chmod +x init_env.sh
 # Set up environment for production
 ENV PYTHONUNBUFFERED=1
 ENV API_URL=http://localhost:8000
-ENV STREAMLIT_SERVER_PORT=8501
-ENV PORT=10000
+ENV PORT=8000
 
 # Print Python version and packages for debugging
 RUN python -c "import sys; print(f'Python version: {sys.version}')"
 
-# Expose the ports the apps run on
-EXPOSE 8000 8501 10000
+# Expose the API port
+EXPOSE 8000
 
-# Run environment setup and then the application
-CMD ["/bin/bash", "-c", "./init_env.sh && python -m serve"]
+# Run environment setup and then just the FastAPI application
+CMD ["/bin/bash", "-c", "./init_env.sh && python app.py"]

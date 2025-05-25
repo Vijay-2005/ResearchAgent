@@ -21,6 +21,8 @@ echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env
 echo "LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-true}" >> .env
 echo "LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-langgraph-example}" >> .env
 echo "API_URL=http://localhost:8000" >> .env
+# Make sure PORT is set
+echo "PORT=${PORT:-8000}" >> .env
 
 # Verify the .env file was created correctly (without exposing full API keys)
 echo "Verifying .env file:"

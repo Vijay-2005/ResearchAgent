@@ -204,17 +204,11 @@ async def api_status():
 
 if __name__ == "__main__":
     import argparse
-    
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Run the AI Research Assistant API")
-    parser.add_argument("--port", type=int, default=8000, help="Port to run the API on")
-    args = parser.parse_args()
-    
-    # Get port from command line args or environment or default
-    port = args.port or int(os.environ.get("API_PORT", 8000))
+      # Get port from environment variable (for cloud deployment) with fallback to 8000
+    port = int(os.environ.get("PORT", 8000))
     
     print(f"Starting FastAPI server on port {port}")
-    # Log more details about the environment
-    print(f"Environment variables: API_URL={os.environ.get('API_URL')}, PORT={os.environ.get('PORT')}")
-        
+    print(f"Environment variables: API_URL={os.environ.get('API_URL')}, PORT={port}")
+    
+    # Make sure to bind to 0.0.0.0 to listen on all interfaces
     uvicorn.run(app, host="0.0.0.0", port=port)
