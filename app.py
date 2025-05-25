@@ -50,10 +50,12 @@ app = FastAPI(
 # Add CORS middleware to allow web requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://www.siliconsynapse.in", "http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    expose_headers=["Content-Type"],
+    max_age=600
 )
 
 # Global storage for conversations (in-memory, will reset on server restart)
@@ -152,10 +154,19 @@ async def chat(request: Dict[str, Any] = Body(...)):
             # Save the updated conversation
             conversations[conversation_id] = updated_messages
             
-            # Return results
+            # Return results with content formatting information
             return {
                 "conversation_id": conversation_id,
-                "messages": updated_messages
+                "messages": updated_messages,
+                "format_info": {
+                    "content_type": "markdown",
+                    "rendering_instructions": {
+                        "headings": "Use proper heading elements (h1-h6) for lines starting with # symbols",
+                        "emphasis": "Render * and _ wrapped text as italic, ** and __ as bold",
+                        "lists": "Render proper ordered and unordered lists for lines starting with numbers or - symbols",
+                        "code_blocks": "Properly format code blocks surrounded by ``` marks"
+                    }
+                }
             }
         except Exception as e:
             import traceback
@@ -173,7 +184,16 @@ async def chat(request: Dict[str, Any] = Body(...)):
                 content={
                     "conversation_id": conversation_id,
                     "messages": messages,
-                    "error": str(e)
+                    "error": str(e),
+                    "format_info": {
+                        "content_type": "markdown",
+                        "rendering_instructions": {
+                            "headings": "Use proper heading elements (h1-h6) for lines starting with # symbols",
+                            "emphasis": "Render * and _ wrapped text as italic, ** and __ as bold",
+                            "lists": "Render proper ordered and unordered lists for lines starting with numbers or - symbols",
+                            "code_blocks": "Properly format code blocks surrounded by ``` marks"
+                        }
+                    }
                 }
             )
     except Exception as e:
@@ -232,6 +252,70 @@ async def api_status():
         api_status["available_tools"] = "Error: Could not import research_tools"
     
     return api_status
+
+@app.get("/frontend-endpoints")
+async def frontend_endpoints():
+    """Returns a structured list of available endpoints for frontend integration"""
+    # Information about available endpoints for the frontend
+    return {
+        "api_version": "1.0.0",
+        "base_url": os.environ.get("API_URL", f"http://localhost:{os.environ.get('PORT', 8000)}"),
+        "endpoints": [
+            {
+                "path": "/chat",
+                "method": "POST",
+                "description": "Chat with the AI Research Assistant",
+                "request_format": {
+                    "conversation_id": "Optional string to continue a conversation",
+                    "message": "User's message (required)",
+                    "model": "Optional model name ('openai' or 'anthropic')"
+                },
+                "response_format": {
+                    "conversation_id": "String ID for the conversation",
+                    "messages": "Array of message objects with role and content"
+                }
+            },
+            {
+                "path": "/conversations",
+                "method": "GET",
+                "description": "List all active conversation IDs",
+                "response_format": {
+                    "conversations": "Array of conversation IDs"
+                }
+            },
+            {
+                "path": "/conversations/{conversation_id}",
+                "method": "DELETE",
+                "description": "Delete a specific conversation",
+                "response_format": {
+                    "message": "Success message"
+                }
+            },
+            {
+                "path": "/health",
+                "method": "GET",
+                "description": "Check API health status",
+                "response_format": {
+                    "api": "Status string",
+                    "key_statuses": "Boolean values for each API key"
+                }
+            },
+            {
+                "path": "/api-status",
+                "method": "GET",
+                "description": "Get detailed API configuration status",
+                "response_format": {
+                    "api_keys": "Status of each API key",
+                    "available_tools": "List of available research tools"
+                }
+            }
+        ],
+        "research_capabilities": [
+            "Web search (via Tavily, Google/Serper, and Metaphor)",
+            "Website content extraction",
+            "E-commerce website scraping (via Apify)"
+        ]
+    }
 
 # Make sure all routes are explicitly registered
 def register_routes():
