@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import signal
 
 def main():
     """
@@ -53,51 +54,33 @@ def main():
         text=True
     )
     
-    # Monitor both processes
-    while True:
-        # Print API output
-        api_line = api_process.stdout.readline()
-        if api_line:
-            print(f"[API] {api_line.strip()}")
-        
-        # Print Streamlit output
-        streamlit_line = streamlit_process.stdout.readline()
-        if streamlit_line:
-            print(f"[STREAMLIT] {streamlit_line.strip()}")
-        
-        # Check if processes are still running
-        api_status = api_process.poll()
-        streamlit_status = streamlit_process.poll()
-        
-        if api_status is not None:
-            print(f"API process exited with code {api_status}")
-            break
-            
-        if streamlit_status is not None:
-            print(f"Streamlit process exited with code {streamlit_status}")
-            break
-            
-        # Short sleep to prevent CPU hogging
-        time.sleep(0.1)
-
-if __name__ == "__main__":
-    main()
     try:
         while True:
-            api_output = api_process.stdout.readline()
-            if api_output:
-                print(f"[API] {api_output.strip()}")
+            # Print API output
+            api_line = api_process.stdout.readline()
+            if api_line:
+                print(f"[API] {api_line.strip()}")
+            
+            # Print Streamlit output
+            streamlit_line = streamlit_process.stdout.readline()
+            if streamlit_line:
+                print(f"[STREAMLIT] {streamlit_line.strip()}")
             
             # Check if processes are still running
-            if api_process.poll() is not None:
-                print("WARNING: API process has terminated!")
+            api_status = api_process.poll()
+            streamlit_status = streamlit_process.poll()
+            
+            if api_status is not None:
+                print(f"API process exited with code {api_status}")
                 break
                 
-            if streamlit_process.poll() is not None:
-                print("WARNING: Streamlit process has terminated!")
+            if streamlit_status is not None:
+                print(f"Streamlit process exited with code {streamlit_status}")
                 break
                 
+            # Short sleep to prevent CPU hogging
             time.sleep(0.1)
+                
     except KeyboardInterrupt:
         print("Stopping servers...")
     finally:
@@ -106,6 +89,7 @@ if __name__ == "__main__":
             api_process.terminate()
         if streamlit_process.poll() is None:
             streamlit_process.terminate()
-    
+        print("Server processes terminated.")
+
 if __name__ == "__main__":
     main()

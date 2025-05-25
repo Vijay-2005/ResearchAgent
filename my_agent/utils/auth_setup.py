@@ -9,11 +9,18 @@ def setup_environment():
     """Set up environment variables from .env file."""
     from dotenv import load_dotenv
     
-    ENV_FILE = "C:\\Users\\Admin\\vijay\\Ai researchher\\langgraph-example\\.env"
+    # Find .env file in current project directory
+    current_dir = Path(__file__).parent.parent.parent  # Go up to project root
+    ENV_FILE = current_dir / ".env"
+    
+    if not ENV_FILE.exists():
+        print(f"Warning: .env file not found at {ENV_FILE}")
+        print("Looking for .env.example instead...")
+        ENV_FILE = current_dir / ".env.example"
     
     # Load .env file
     print(f"Loading environment variables from: {ENV_FILE}")
-    load_dotenv(dotenv_path=ENV_FILE)
+    load_dotenv(dotenv_path=str(ENV_FILE))
     
     # Set essential environment variables for LangSmith
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
