@@ -7,6 +7,8 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.google_serper import GoogleSerperAPIWrapper
 from langchain_community.tools.google_serper import GoogleSerperRun
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
 
 # Fix SerpAPI imports - using correct modules
 try:
@@ -50,10 +52,23 @@ class SerpAPITool(BaseTool):
     name: str = "serpapi_search"
     description: str = "Search Google through SerpAPI. Use this for comprehensive search results."
     api_wrapper: Any = None
-    
-    def _run(self, query: str) -> Dict[str, Any]:
+      def _run(self, query: str) -> Dict[str, Any]:
         results = self.api_wrapper.run(query)
         return {"results": results}
+
+# Wikipedia research tool
+class WikipediaResearchTool(BaseTool):
+    name: str = "wikipedia_research"
+    description: str = "Search Wikipedia for factual information and historical data. Use this for getting verified information about concepts, people, places, and events."
+    
+    def _run(self, query: str) -> Dict[str, Any]:
+        try:
+            wikipedia = WikipediaAPIWrapper(top_k_results=3, doc_content_chars_max=5000)
+            results = wikipedia.run(query)
+            return {"results": results}
+        except Exception as e:
+            print(f"Error in Wikipedia search: {str(e)}")
+            return {"error": str(e)}
 
 # Add this class with your other tool classes
 class ApifyScraper(BaseTool):
@@ -121,6 +136,13 @@ class ApifyScraper(BaseTool):
 def get_search_tools() -> List[BaseTool]:
     """Create and return available search tools based on API keys."""
     tools = []
+    
+    # Add Wikipedia tool (free, no API key required)
+    try:
+        tools.append(WikipediaResearchTool())
+        print("Wikipedia research tool initialized successfully")
+    except Exception as e:
+        print(f"Error initializing Wikipedia tool: {e}")
     
     # Try to set up Tavily
     tavily_api_key = os.environ.get("TAVILY_API_KEY")

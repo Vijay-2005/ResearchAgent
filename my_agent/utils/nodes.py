@@ -96,12 +96,14 @@ def should_continue(state):
 SYSTEM_PROMPT = """You are an AI research assistant with multiple specialized tools.
 
 Please use the following tools for specific research needs:
+- wikipedia_research: For factual information, historical data, and verified knowledge about concepts, people, places, and events. This should be your FIRST choice for general knowledge questions.
 - tavily_search: For general web search and basic information
 - serper_search: For credible academic information, research papers, and scientific data. Use this for climate change research, medical information, and academic topics.
 - metaphor_search: For finding recent blog posts, articles, and trending content. Use this for discovering the latest industry trends, technology news, and recent discussions.
 - browse_web: For extracting content from a specific webpage
 - apify_scraper: For scraping structured data from websites including e-commerce sites
 
+When a user asks about general knowledge, definitions, or historical facts, ALWAYS use wikipedia_research first.
 When a user asks about research from credible sources, ALWAYS use serper_search.
 When a user asks about recent blog posts or trends, ALWAYS use metaphor_search.
 """
@@ -125,6 +127,9 @@ def select_tool(query: str) -> str:
     query_lower = query.lower()
     
     # Rule-based tool selection
+    if any(term in query_lower for term in ["wikipedia", "fact", "definition", "history", "who is", "what is", "when did", "where is"]):
+        return "wikipedia_research"
+    
     if any(term in query_lower for term in ["scrape", "extract", "product", "amazon"]):
         return "apify_scraper"
     
