@@ -11,6 +11,11 @@ langsmith
 # LangGraph
 langgraph>=0.0.20  # Make sure to compile the graph before invoking
 
+# Vector database
+langchain-chroma
+chromadb
+sentence-transformers
+
 # API and deployment
 fastapi
 uvicorn
