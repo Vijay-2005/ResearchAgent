@@ -97,8 +97,8 @@ This agent is designed with flexibility in mind, allowing you to choose which se
 - **Apify**: Provides structured data extraction from websites
 
 ### LLM APIs (at least one required)
-- **OpenAI**: Used for Claude models
-- **Anthropic**: Used for GPT models
+- **OpenAI**: Used for GPT models
+
 
 If an API key is missing, the agent will automatically fall back to other available services. Configure your preferred services in the `.env` file.
 
