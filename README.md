@@ -188,7 +188,11 @@ The agent automatically selects the best tool based on your query:
 2. **Tool Not Available**: Check if the corresponding API key is set in your environment
 3. **Wikipedia Works But Others Don't**: Wikipedia doesn't require an API key, so test with other tools
 
-### Debug Mode
+
+### LLM APIs (at least one required)
+- **OpenAI**: Used for GPT models
+
+
 
 Check API status at `http://localhost:8000/api-status` to see which tools are properly configured.
 
