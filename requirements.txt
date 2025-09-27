@@ -31,5 +31,6 @@ metaphor-python        # Optional
 beautifulsoup4
 tavily-python
 
-
-apify-client
+# MCP (Model Context Protocol) support
+mcp
+langchain-mcp

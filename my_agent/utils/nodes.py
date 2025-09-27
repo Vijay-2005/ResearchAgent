@@ -92,7 +92,7 @@ def should_continue(state):
         return "continue"
 
 
-# Update the system prompt to include Apify capability
+# System prompt for research tools
 SYSTEM_PROMPT = """You are an AI research assistant with multiple specialized tools.
 
 Please use the following tools for specific research needs:
@@ -101,7 +101,7 @@ Please use the following tools for specific research needs:
 - serper_search: For credible academic information, research papers, and scientific data. Use this for climate change research, medical information, and academic topics.
 - metaphor_search: For finding recent blog posts, articles, and trending content. Use this for discovering the latest industry trends, technology news, and recent discussions.
 - browse_web: For extracting content from a specific webpage
-- apify_scraper: For scraping structured data from websites including e-commerce sites
+- multi_mcp_tools: For accessing tools from multiple MCP servers including chart generation, file operations, and more.
 
 When a user asks about general knowledge, definitions, or historical facts, ALWAYS use wikipedia_research first.
 When a user asks about research from credible sources, ALWAYS use serper_search.
@@ -130,8 +130,6 @@ def select_tool(query: str) -> str:
     if any(term in query_lower for term in ["wikipedia", "fact", "definition", "history", "who is", "what is", "when did", "where is"]):
         return "wikipedia_research"
     
-    if any(term in query_lower for term in ["scrape", "extract", "product", "amazon"]):
-        return "apify_scraper"
     
     if any(term in query_lower for term in ["research", "credible", "scientific", "academic", "paper", "study", "climate"]):
         return "serper_search"
@@ -141,6 +139,8 @@ def select_tool(query: str) -> str:
         
     if any(term in query_lower for term in ["browse", "visit", "webpage", "website"]):
         return "browse_web"
-        
+    if any(term in query_lower for term in ["chart", "graph", "data visualization"]):
+        return "mcp_server_chart"
+
     # Default to Tavily
     return "tavily_search"
