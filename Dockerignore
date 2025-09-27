@@ -1,0 +1,18 @@
+# Ignore files that shouldn't be in Docker image , dockerignore 
+.git
+.github
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.Python
+env/
+.env.local
+.env.development
+.venv
+venv/
+ENV/
+.idea/
+.vscode/
+*.log
