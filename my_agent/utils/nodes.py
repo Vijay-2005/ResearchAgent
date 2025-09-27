@@ -101,7 +101,6 @@ Please use the following tools for specific research needs:
 - serper_search: For credible academic information, research papers, and scientific data. Use this for climate change research, medical information, and academic topics.
 - metaphor_search: For finding recent blog posts, articles, and trending content. Use this for discovering the latest industry trends, technology news, and recent discussions.
 - browse_web: For extracting content from a specific webpage
-- multi_mcp_tools: For accessing tools from multiple MCP servers including chart generation, file operations, and more.
 
 When a user asks about general knowledge, definitions, or historical facts, ALWAYS use wikipedia_research first.
 When a user asks about research from credible sources, ALWAYS use serper_search.
@@ -139,8 +138,6 @@ def select_tool(query: str) -> str:
         
     if any(term in query_lower for term in ["browse", "visit", "webpage", "website"]):
         return "browse_web"
-    if any(term in query_lower for term in ["chart", "graph", "data visualization"]):
-        return "mcp_server_chart"
 
     # Default to Tavily
     return "tavily_search"
