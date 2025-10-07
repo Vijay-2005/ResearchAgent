@@ -19,9 +19,6 @@ RUN pip list
 # Copy the rest of the application
 COPY . .
 
-# Make shell scripts executable
-RUN chmod +x init_env.sh
-
 # Set up environment for production
 ENV PYTHONUNBUFFERED=1
 ENV API_URL=http://localhost:8000
@@ -33,9 +30,5 @@ RUN python -c "import sys; print(f'Python version: {sys.version}')"
 # Expose the API port
 EXPOSE 8000
 
-# Run environment setup and the FastAPI application using production ASGI server
-CMD ["/bin/bash", "-c", "./init_env.sh && uvicorn app:app --host 0.0.0.0 --port $PORT"]
-
-# Dockerfile
-# crazylycrazy
-# crazylycrazy            
+# Run the FastAPI application using production ASGI server
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
