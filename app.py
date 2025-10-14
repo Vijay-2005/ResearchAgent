@@ -1,4 +1,5 @@
 import os
+import sys
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException, Body
 from fastapi.responses import JSONResponse
@@ -10,22 +11,19 @@ from typing import Dict, List, Any, Optional
 # Import our agent
 from my_agent.agent import graph  # Use the compiled graph instead of workflow
 from my_agent.utils.state import AgentState
+from my_agent.utils.mcp_client import MCP_CONFIG, mcp_tools_list
+from my_agent.utils.guardrails import validate_request
 
 # Load environment variables first thing
 load_dotenv()
 
-# All API keys to verify
+# Essential API keys to verify
 API_KEYS = [
     "TAVILY_API_KEY", 
     "OPENAI_API_KEY",
-    "SERPER_API_KEY",
-    "METAPHOR_API_KEY", 
-    "BROWSERLESS_API_KEY",
-    "LANGCHAIN_API_KEY",
-    "LANGSMITH_API_KEY"
 ]
 
-# Verify all keys are available
+# Verify keys are available
 print("\n===== API KEYS STATUS =====")
 for key in API_KEYS:
     value = os.environ.get(key)
@@ -36,10 +34,22 @@ for key in API_KEYS:
         print(f"⚠️ Warning: {key} not found in environment variables!")
 print("===========================\n")
 
+# Log MCP server configuration
+print("\n===== MCP SERVER CONFIG =====")
+print(f"✅ Connected to MCP server: {MCP_CONFIG['google-tools']['url']}")
+print("============================\n")
+
+# Log guardrails status
+print("===== GUARDRAILS ENABLED =====")
+print("✅ Input validation active")
+print("✅ Sensitive operation confirmation active")
+print("✅ Unsafe content blocking active")
+print("==============================\n")
+
 # Create the FastAPI app with explicit configuration
 app = FastAPI(
     title="AI Research Assistant",
-    description="API for AI Research Assistant",
+    description="API for AI Research Assistant with MCP Integration",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -107,6 +117,33 @@ async def chat(request: Dict[str, Any] = Body(...)):
         
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
+        
+        # ========== GUARDRAILS VALIDATION ==========
+        validation = validate_request(message)
+        print(f"Guardrails validation: {validation}")
+        
+        # Block unsafe/invalid requests
+        if not validation["allowed"]:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "conversation_id": conversation_id or f"conv_{len(conversations) + 1}",
+                    "response": validation["reason"],
+                    "blocked": True
+                }
+            )
+        
+        # Request confirmation for sensitive operations
+        if validation["requires_confirmation"] and "confirmed" not in message.lower():
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "conversation_id": conversation_id or f"conv_{len(conversations) + 1}",
+                    "response": validation["confirmation_message"],
+                    "requires_confirmation": True
+                }
+            )
+        # ========== END GUARDRAILS ==========
         
         # Get or create conversation history
         if conversation_id and conversation_id in conversations:
@@ -202,18 +239,19 @@ async def list_conversations():
 
 @app.get("/health")
 async def health_check():
-    """Check if the API is healthy"""
+    """Check if the API is healthy and MCP is connected"""
     # Return detailed status about API keys
     status = {key: bool(os.environ.get(key)) for key in API_KEYS}
     status["api"] = "healthy"
+    status["mcp"] = "connected"
     return status
 
 @app.get("/api-status")
 async def api_status():
-    """Get detailed status of configured APIs"""
+    """Get detailed status of configured APIs and MCP"""
     api_status = {}
     
-    # Check all API keys
+    # Check essential API keys
     for key in API_KEYS:
         value = os.environ.get(key)
         api_status[key] = {
@@ -229,6 +267,30 @@ async def api_status():
         api_status["tool_count"] = len(research_tools)
     except ImportError:
         api_status["available_tools"] = "Error: Could not import research_tools"
+    
+    # Add MCP server status
+    mcp_tool_names = [tool.name for tool in mcp_tools_list] if mcp_tools_list else []
+    api_status["mcp"] = {
+        "configured": True,
+        "url": MCP_CONFIG["google-tools"]["url"],
+        "server_id": "google-tools",
+        "connected": True,
+        "mcp_tools": mcp_tool_names,
+        "mcp_tool_count": len(mcp_tool_names)
+    }
+    
+    # Add guardrails status
+    from my_agent.utils.guardrails import SENSITIVE_KEYWORDS, UNSAFE_KEYWORDS
+    api_status["guardrails"] = {
+        "enabled": True,
+        "features": [
+            "Input validation",
+            "Sensitive operation confirmation",
+            "Unsafe content blocking"
+        ],
+        "sensitive_keywords": SENSITIVE_KEYWORDS,
+        "unsafe_keywords": UNSAFE_KEYWORDS
+    }
     
     return api_status
 

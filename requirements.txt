@@ -1,33 +1,22 @@
-# Requirements for Knowledge Navigator
+# Minimal requirements for AI Research Agent
 
-# LangChain core modules
-langchain
+# Core dependencies
 langchain-core
 langchain-community
 langchain-openai
-langchain-anthropic
-langsmith
 
-# LangGraph
-langgraph>=0.0.20  # Make sure to compile the graph before invoking
-
-# Vector database
-langchain-chroma
-chromadb
-sentence-transformers
+# LangGraph with multiserver support
+langgraph>=0.1.1
+langchain-mcp-adapters>=0.0.1
 
 # API and deployment
 fastapi
 uvicorn
-streamlit
 
 # Environment and utilities
 python-dotenv
 requests
 
-# Research and web scraping tools
-google-search-results  # SerpAPI
-metaphor-python        # Optional
-beautifulsoup4
+# Research tools
 tavily-python
 

@@ -1,15 +1,48 @@
 from functools import lru_cache
-from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
-# from my_agent.utils.tools import tools
-from my_agent.utils.research_tools import research_tools as tools
+from my_agent.utils.research_tools import research_tools
 from langgraph.prebuilt import ToolNode
+import os
 
+# Import the MCP client and tools from mcp_client module
+from my_agent.utils.mcp_client import mcp_client, mcp_tools_list, list_mcp_tools
+import asyncio
 
-@lru_cache(maxsize=4)
+# Combine local tools with MCP tools
+all_tools = research_tools.copy()
+
+# Function to load MCP tools into all_tools
+def integrate_mcp_tools():
+    global mcp_tools_list
+    if mcp_tools_list:
+        # Add MCP tools to all_tools
+        all_tools.extend(mcp_tools_list)
+        tool_names = [tool.name for tool in mcp_tools_list]
+        print(f"✅ Integrated {len(mcp_tools_list)} MCP tools into agent: {', '.join(tool_names)}\n")
+        return mcp_tools_list
+    elif mcp_client:
+        # If tools weren't loaded during initialization, try now
+        try:
+            print("⏳ Loading MCP tools now...")
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                print("⚠️ Event loop is running, tools will be loaded later")
+                return []
+            else:
+                tools = loop.run_until_complete(list_mcp_tools())
+                all_tools.extend(tools)
+                return tools
+        except Exception as e:
+            print(f"❌ Error loading MCP tools: {str(e)}")
+            return []
+    return []
+
+# Try to integrate MCP tools
+mcp_tools = integrate_mcp_tools()
+
+@lru_cache(maxsize=1)
 def _get_model(model_name: str):
     print(f"Creating model instance for: {model_name}")
-    import os
     # Print the first few characters of the key for debugging
     openai_key = os.environ.get("OPENAI_API_KEY")
     if openai_key:
@@ -18,67 +51,22 @@ def _get_model(model_name: str):
         print("WARNING: OPENAI_API_KEY not found in environment")
 
     try:
-        if model_name == "openai":
-            print("Initializing OpenAI model...")
-            # Be explicit about the API key to avoid any environment issues
-            model = ChatOpenAI(
-                temperature=0, 
-                model_name="gpt-4o",
-                api_key=openai_key
-            )
-            # Test that the model works by making a simple call
-            print("Testing OpenAI model connection...")
-            test_response = model.invoke([{"role": "user", "content": "Hello"}])
-            print(f"OpenAI test successful: {test_response.content[:20]}...")
-        elif model_name == "anthropic":
-            anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-            if not anthropic_key or anthropic_key == "...":
-                print("Anthropic API key not found or is placeholder. Falling back to OpenAI.")
-                return _get_model("openai")
-                
-            model = ChatAnthropic(
-                temperature=0, 
-                model_name="claude-3-sonnet-20240229",
-                api_key=anthropic_key
-            )
-            # Test that the model works by making a simple call
-            print("Testing Anthropic model connection...")
-            test_response = model.invoke([{"role": "user", "content": "Hello"}])
-            print(f"Anthropic test successful: {test_response.content[:20]}...")
-        else:
-            raise ValueError(f"Unsupported model type: {model_name}")
-
-        model = model.bind_tools(tools)
+        print("Initializing OpenAI model...")
+        # Using gpt-4o-mini for cost-effective performance
+        model = ChatOpenAI(
+            temperature=1, 
+            model_name="gpt-5-nano",
+            api_key=openai_key
+        )
+        
+        # Bind tools to the model
+        model = model.bind_tools(all_tools)
         return model
     except Exception as e:
         import traceback
-        print(f"Error initializing model {model_name}: {str(e)}")
+        print(f"Error initializing model: {str(e)}")
         print(traceback.format_exc())
-        
-        # Fall back to a more basic approach if we're having trouble
-        if model_name == "openai" and openai_key:
-            print("Trying fallback initialization for OpenAI...")
-            try:
-                from openai import OpenAI
-                # Create a basic client object
-                client = OpenAI(api_key=openai_key)
-                test_response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role": "user", "content": "Hello"}]
-                )
-                print(f"Direct OpenAI test succeeded: {test_response.choices[0].message.content[:20]}...")
-                # If we can't use the LangChain wrapper, raise the original error
-                raise e
-            except Exception as direct_error:
-                print(f"Direct OpenAI call also failed: {direct_error}")
-                
-        # Fall back to OpenAI if there's an error with the requested model
-        if model_name != "openai":
-            print("Falling back to OpenAI model...")
-            return _get_model("openai")
-        else:
-            # If we're already trying OpenAI and it's failing, raise the error
-            raise
+        raise
 
 # Define the function that determines whether to continue or not
 def should_continue(state):
@@ -91,53 +79,79 @@ def should_continue(state):
     else:
         return "continue"
 
-
 # System prompt for research tools
-SYSTEM_PROMPT = """You are an AI research assistant with multiple specialized tools.
+def generate_system_prompt():
+    """Dynamically generate system prompt based on available tools."""
+    base_prompt = "You are an AI research assistant with access to web search and MCP tools.\n\n"
+    
+    tool_descriptions = []
+    
+    # Add web search tool description
+    tool_descriptions.append("- web_search: For searching the web for information")
+    
+    # Add MCP tool descriptions if available
+    if mcp_tools:
+        for tool in mcp_tools:
+            tool_descriptions.append(f"- {tool.name}: {tool.description}")
+    
+    # Add usage instructions
+    instructions = "\nWhen a user asks about searching for information on the web, use the web_search tool."
+    if mcp_tools:
+        instructions += "\nFor Google-related tasks, use the appropriate MCP Google tools."
+    
+    # Combine all parts
+    full_prompt = base_prompt + "You can use the following tools:\n" + "\n".join(tool_descriptions) + instructions
+    
+    return full_prompt
 
-Please use the following tools for specific research needs:
-- wikipedia_research: For factual information, historical data, and verified knowledge about concepts, people, places, and events. This should be your FIRST choice for general knowledge questions.
-- tavily_search: For general web search and basic information
-- serper_search: For credible academic information, research papers, and scientific data. Use this for climate change research, medical information, and academic topics.
-- metaphor_search: For finding recent blog posts, articles, and trending content. Use this for discovering the latest industry trends, technology news, and recent discussions.
-- browse_web: For extracting content from a specific webpage
-
-When a user asks about general knowledge, definitions, or historical facts, ALWAYS use wikipedia_research first.
-When a user asks about research from credible sources, ALWAYS use serper_search.
-When a user asks about recent blog posts or trends, ALWAYS use metaphor_search.
-"""
+# Generate the system prompt
+SYSTEM_PROMPT = generate_system_prompt()
 
 # Define the function that calls the model
 def call_model(state, config):
+    from my_agent.utils.guardrails import validate_request
+    
     messages = state["messages"]
+    
+    # Get the last user message for guardrails check
+    last_user_message = None
+    for msg in reversed(messages):
+        if hasattr(msg, 'type') and msg.type == 'human':
+            last_user_message = msg.content
+            break
+        elif isinstance(msg, dict) and msg.get('role') == 'user':
+            last_user_message = msg.get('content')
+            break
+    
+    # Apply guardrails if we have a user message
+    if last_user_message:
+        # Convert to string if it's a list (multimodal messages)
+        if isinstance(last_user_message, list):
+            last_user_message_str = " ".join([str(item.get("text", item)) if isinstance(item, dict) else str(item) for item in last_user_message])
+        else:
+            last_user_message_str = str(last_user_message)
+        
+        validation = validate_request(last_user_message)
+        print(f"🛡️ Guardrails check: {validation}")
+        
+        # Block unsafe requests
+        if not validation["allowed"]:
+            from langchain_core.messages import AIMessage
+            blocked_response = AIMessage(content=validation["reason"])
+            return {"messages": [blocked_response]}
+        
+        # Request confirmation for sensitive operations
+        if validation["requires_confirmation"] and "confirmed" not in last_user_message_str.lower():
+            from langchain_core.messages import AIMessage
+            confirm_response = AIMessage(content=validation["confirmation_message"])
+            return {"messages": [confirm_response]}
+    
+    # Proceed with normal model call
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
-    # Use OpenAI as default instead of anthropic
     model_name = config.get('configurable', {}).get("model_name", "openai")
     model = _get_model(model_name)
     response = model.invoke(messages)
-    # We return a list, because this will get added to the existing list
     return {"messages": [response]}
 
 # Define the function to execute tools
-tool_node = ToolNode(tools)
-
-def select_tool(query: str) -> str:
-    """Suggest which tool to use based on the query content."""
-    query_lower = query.lower()
-    
-    # Rule-based tool selection
-    if any(term in query_lower for term in ["wikipedia", "fact", "definition", "history", "who is", "what is", "when did", "where is"]):
-        return "wikipedia_research"
-    
-    
-    if any(term in query_lower for term in ["research", "credible", "scientific", "academic", "paper", "study", "climate"]):
-        return "serper_search"
-        
-    if any(term in query_lower for term in ["blog", "recent", "trend", "latest", "article", "post"]):
-        return "metaphor_search"
-        
-    if any(term in query_lower for term in ["browse", "visit", "webpage", "website"]):
-        return "browse_web"
-
-    # Default to Tavily
-    return "tavily_search"
+tool_node = ToolNode(all_tools)

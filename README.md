@@ -1,201 +1,110 @@
-# AI Research Agent
+# AI Research Agent with MCP Integration
 
-![](static/agent_ui.png)
+![MCP Integration](https://www.cursor.sh/brand/cursor-bg-dark.jpg)
 
 ## Overview
-AI Research Agent is a powerful, specialized assistant designed to help with research tasks. Leveraging LangGraph and LangChain technologies, this agent can search the web, process information, and provide comprehensive research assistance through a conversational interface.
+AI Research Agent is a streamlined assistant designed for research tasks with MCP server integration. Using LangGraph's multiserver client technology, this agent connects to external MCP tools while providing web search capabilities through Tavily.
 
 ## Features
 
-- **Multi-Source Research**: Utilizes various search engines and tools including Tavily, Google Serper, and Wikipedia
-- **Web Content Extraction**: Browse and extract content from specific webpages
-- **Interactive UI**: Clean HTML/CSS/JS interface for easy interaction
-- **Conversational Memory**: Maintains context throughout research sessions
-- **Smart Tool Selection**: Automatically chooses the best research tool based on query content
+- **Web Search**: Utilizes Tavily Search for finding facts and current information
+- **MCP Integration**: Connects to the MCP server to access Google tools
+- **Guardrails**: Built-in safety layer for input validation, sensitive operation confirmation, and unsafe content blocking
+- **FastAPI Backend**: Clean, efficient API endpoints
+- **Docker Support**: Ready for container deployment
 
-## Tech Stack
-
-- **Framework**: [LangGraph](https://github.com/langchain-ai/langgraph) - For building stateful, multi-actor LLM applications
-- **UI**: HTML/CSS/JavaScript frontend
-- **API**: FastAPI backend service
-- **Deployment**: Render.com ready with environment configuration
-
-## Getting Started
-
-### Prerequisites
-- Python 3.10+
-- API keys for the following services:
-  
-  **Required:**
-  - At least one LLM provider:
-    - [OpenAI API key](https://platform.openai.com/account/api-keys) (Recommended)
-    - [Anthropic API key](https://www.anthropic.com/api)
-  - At least one search provider:
-    - [Tavily API key](https://tavily.com/) (Recommended)
-    - [Google Serper API key](https://serper.dev/)
-    - [SerpAPI key](https://serpapi.com/)
-    
-  **Optional but recommended:**
-  - [Metaphor API key](https://metaphor.systems/) (for recent content and trends)
-  - [Browserless API key](https://www.browserless.io/) (for web content extraction)
-  - [LangSmith API key](https://smith.langchain.com/) (for debugging and tracing)
-
-### Environment Setup
-
-1. Create a `.env` file in the project root:
-   ```bash
-   # Required LLM API Keys (at least one)
-   OPENAI_API_KEY=sk-your-openai-api-key-here
-   ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key-here
-
-   # Required Search API Keys (at least one)
-   TAVILY_API_KEY=tvly-your-tavily-api-key-here
-   SERPER_API_KEY=your-serper-api-key-here
-   SERPAPI_API_KEY=your-serpapi-api-key-here
-
-   # Optional API Keys for enhanced features
-   METAPHOR_API_KEY=your-metaphor-api-key-here
-   BROWSERLESS_API_KEY=your-browserless-api-key-here
-   LANGSMITH_API_KEY=your-langsmith-api-key-here
-
-   # Optional LangSmith tracing
-   LANGCHAIN_TRACING_V2=true
-   LANGCHAIN_PROJECT=ai-research-agent
-   ```
-
-### Installation
-
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Configure API keys in your `.env` file
-
-### Running the Application
-
-**Start the backend:**
-```bash
-python app.py
-```
-
-The application will be available at `http://localhost:8000`
-
-**Access the web interface:**
-Navigate to `http://localhost:8000` in your browser to use the chat interface.
-
-## Available Research Tools
+## Available Tools
 
 | Tool Name | Purpose | API Key Required | Best For |
 |-----------|---------|------------------|----------|
-| `wikipedia_research` | Factual information | ❌ Free | Definitions, history, general knowledge |
-| `tavily_search` | Web search | ✅ TAVILY_API_KEY | Current information, news |
-| `serper_search` | Google search | ✅ SERPER_API_KEY | Academic research, scientific data |
-| `serpapi_search` | Google search | ✅ SERPAPI_API_KEY | Comprehensive search results |
-| `metaphor_search` | Recent content | ✅ METAPHOR_API_KEY | Trending topics, latest articles |
-| `browse_web` | Webpage content | ✅ BROWSERLESS_API_KEY | Extract content from specific URLs |
-
-## API Usage
-
-### Chat Endpoint
-```bash
-curl -X POST "http://localhost:8000/chat" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "message": "What is artificial intelligence?",
-       "model": "openai"
-     }'
-```
-
-### Health Check
-```bash
-curl http://localhost:8000/health
-```
-
-### API Status
-```bash
-curl http://localhost:8000/api-status
-```
-
-## Testing Your Setup
-
-Use this comprehensive test prompt to verify all API keys are working:
-
-```
-"Please test all your available research tools and API keys by doing the following comprehensive test:
-
-1. Test Wikipedia research with query 'artificial intelligence'
-2. Test Tavily search with query 'latest technology news'
-3. Test Google Serper search with query 'Python programming'
-4. Test SerpAPI search with query 'machine learning'
-5. Test Metaphor search with query 'AI trends 2024'
-6. Test web browsing on 'https://www.wikipedia.org'
-
-For each tool, tell me:
-- ✅ WORKING: [tool name] - [brief result]
-- ❌ ERROR: [tool name] - [error message]
-- ⚠️ NOT AVAILABLE: [tool name] - [reason]
-
-Finally, give me a summary of which API keys are working and which need to be configured."
-```
-
-## Deployment
-
-### Render.com Deployment
-
-1. Connect your GitHub repository to Render.com
-2. Set environment variables in Render dashboard
-3. Deploy using the included `render.yaml` configuration
-
-### Manual Deployment
-
-The application is ready for deployment on any platform that supports Python applications. Make sure to:
-- Set all required environment variables
-- Install dependencies from `requirements.txt`
-- Run `python app.py`
-
-## Smart Tool Selection
-
-The agent automatically selects the best tool based on your query:
-
-- **General knowledge questions** → Wikipedia research
-- **Academic/research topics** → Google Serper search
-- **Recent news/trends** → Metaphor search
-- **Specific webpages** → Web browsing
-- **Default fallback** → Tavily search
+| `web_search` | Web search | ✅ TAVILY_API_KEY | Current information, news |
+| `mcp_google-tools_search_gmail_messages` | Gmail search | ✅ OAuth token | Searching emails |
+| `mcp_google-tools_list_gmail_messages` | Gmail listing | ✅ OAuth token | Listing emails |
+| `mcp_google-tools_list_gmail_labels` | Gmail labels | ✅ OAuth token | Email organization |
 
 ## Project Structure
 
 ```
 ├── app.py                 # FastAPI main application
 ├── my_agent/
-│   ├── agent.py          # LangGraph workflow
+│   ├── agent.py          # LangGraph workflow with MCP client
 │   └── utils/
 │       ├── nodes.py      # Agent/tool nodes
 │       ├── state.py      # Agent state definition
-│       ├── research_tools.py  # Tool implementations
+│       ├── research_tools.py  # Tavily search tool
 │       └── auth_setup.py # API key setup
-├── static/index.html     # Web UI
 ├── requirements.txt     # Dependencies
-└── render.yaml         # Render.com deployment config
+└── Dockerfile          # Docker configuration
 ```
 
-## Troubleshooting
+## Setup
 
-### Common Issues
+1. Create a `.env` file with your API keys:
+   ```
+   TAVILY_API_KEY=your_tavily_key
+   OPENAI_API_KEY=your_openai_key
+   ```
 
-1. **API Key Errors**: Make sure your `.env` file is in the project root and contains valid API keys
-2. **Tool Not Available**: Check if the corresponding API key is set in your environment
-3. **Wikipedia Works But Others Don't**: Wikipedia doesn't require an API key, so test with other tools
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
+3. Run the server:
+   ```bash
+   uvicorn app:app --host 0.0.0.0 --port 8000
+   ```
 
-### LLM APIs (at least one required)
-- **OpenAI**: Used for GPT models
+## Using Docker
 
+1. Build the container:
+   ```bash
+   docker build -t ai-research-agent .
+   ```
 
+2. Run the container:
+   ```bash
+   docker run -p 8000:8000 -e TAVILY_API_KEY=your_tavily_key -e OPENAI_API_KEY=your_openai_key ai-research-agent
+   ```
 
-Check API status at `http://localhost:8000/api-status` to see which tools are properly configured.
+## MCP Integration
 
-## License
+The agent connects to the MCP server at `http://52.165.80.198:8837/mcp` to access Google tools. The connection status is visible in the server logs and can be verified at the `/health` and `/api-status` endpoints.
 
-This project uses the same license as the LangGraph project.
+## Guardrails
+
+The agent includes built-in safety mechanisms:
+
+### Input Validation
+- Blocks empty messages
+- Enforces 1000 character limit
+- Validates message format
+
+### Unsafe Content Blocking
+Automatically blocks requests containing:
+- `hack`, `illegal`, `steal`, `password`, `exploit`
+
+Example:
+```
+User: "Help me hack into a system"
+Agent: ⚠️ This request is out of scope. I cannot help with: 'hack'
+```
+
+### Sensitive Operation Confirmation
+Requires explicit confirmation for:
+- `delete`, `remove`, `send email`, `send message`
+
+Example:
+```
+User: "Delete all my old emails"
+Agent: ⚠️ This action involves 'delete'. Please confirm you want to proceed by adding 'confirmed' to your message.
+
+User: "Delete all my old emails confirmed"
+Agent: [Proceeds with action]
+```
+
+### Testing Guardrails
+Run the test suite:
+```bash
+python test_guardrails.py
+```
