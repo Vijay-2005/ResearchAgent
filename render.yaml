@@ -5,7 +5,7 @@ services:
     env: docker
     plan: free
     region: oregon
-    branch: main
+    branch: google-workspace
     numInstances: 1
     healthCheckPath: /health
     # Explicitly set the port that the service runs on
