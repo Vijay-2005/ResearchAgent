@@ -27,9 +27,8 @@ AI Research Agent is a powerful, specialized assistant designed to help with res
 - API keys for the following services:
   
   **Required:**
-  - At least one LLM provider:
-    - [OpenAI API key](https://platform.openai.com/account/api-keys) (Recommended)
-    - [Anthropic API key](https://www.anthropic.com/api)
+  - LLM provider:
+    - [OpenAI API key](https://platform.openai.com/account/api-keys)
   - At least one search provider:
     - [Tavily API key](https://tavily.com/) (Recommended)
     - [Google Serper API key](https://serper.dev/)
@@ -44,9 +43,8 @@ AI Research Agent is a powerful, specialized assistant designed to help with res
 
 1. Create a `.env` file in the project root:
    ```bash
-   # Required LLM API Keys (at least one)
+   # Required LLM API Key
    OPENAI_API_KEY=sk-your-openai-api-key-here
-   ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key-here
 
    # Required Search API Keys (at least one)
    TAVILY_API_KEY=tvly-your-tavily-api-key-here
