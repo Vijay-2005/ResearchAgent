@@ -1,5 +1,4 @@
 from functools import lru_cache
-from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 # from my_agent.utils.tools import tools
 from my_agent.utils.research_tools import research_tools as tools
@@ -30,21 +29,6 @@ def _get_model(model_name: str):
             print("Testing OpenAI model connection...")
             test_response = model.invoke([{"role": "user", "content": "Hello"}])
             print(f"OpenAI test successful: {test_response.content[:20]}...")
-        elif model_name == "anthropic":
-            anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-            if not anthropic_key or anthropic_key == "...":
-                print("Anthropic API key not found or is placeholder. Falling back to OpenAI.")
-                return _get_model("openai")
-                
-            model = ChatAnthropic(
-                temperature=0, 
-                model_name="claude-3-sonnet-20240229",
-                api_key=anthropic_key
-            )
-            # Test that the model works by making a simple call
-            print("Testing Anthropic model connection...")
-            test_response = model.invoke([{"role": "user", "content": "Hello"}])
-            print(f"Anthropic test successful: {test_response.content[:20]}...")
         else:
             raise ValueError(f"Unsupported model type: {model_name}")
 
@@ -72,13 +56,8 @@ def _get_model(model_name: str):
             except Exception as direct_error:
                 print(f"Direct OpenAI call also failed: {direct_error}")
                 
-        # Fall back to OpenAI if there's an error with the requested model
-        if model_name != "openai":
-            print("Falling back to OpenAI model...")
-            return _get_model("openai")
-        else:
-            # If we're already trying OpenAI and it's failing, raise the error
-            raise
+        # If we're already trying OpenAI and it's failing, raise the error
+        raise
 
 # Define the function that determines whether to continue or not
 def should_continue(state):
@@ -111,7 +90,7 @@ When a user asks about recent blog posts or trends, ALWAYS use metaphor_search.
 def call_model(state, config):
     messages = state["messages"]
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
-    # Use OpenAI as default instead of anthropic
+    # Use OpenAI model
     model_name = config.get('configurable', {}).get("model_name", "openai")
     model = _get_model(model_name)
     response = model.invoke(messages)

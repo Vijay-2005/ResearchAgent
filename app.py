@@ -92,7 +92,7 @@ async def chat(request: Dict[str, Any] = Body(...)):
     Expects a JSON body with:
     - conversation_id: Optional ID to continue a conversation
     - message: The user's message
-    - model: Optional model to use ("openai" or "anthropic")
+    - model: Optional model to use (default: "openai")
     """
     print("POST /chat endpoint called with body:", request)
     

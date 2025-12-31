@@ -5,7 +5,6 @@ langchain
 langchain-core
 langchain-community
 langchain-openai
-langchain-anthropic
 langsmith
 
 # LangGraph
