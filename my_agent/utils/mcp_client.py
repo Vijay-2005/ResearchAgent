@@ -13,11 +13,19 @@ MCP_CONFIG = {
     #     "transport": "streamable_http",
     #     "headers": {}
     # },
-     "google-tools": {
-        "url": "https://google-workspace-mcp-0p7u.onrender.com/mcp",
-        "transport": "streamable_http",
-        "headers": {}
+    #  "google-tools": {
+    #     "url": "https://google-workspace-mcp-0p7u.onrender.com/mcp",
+    #     "transport": "streamable_http",
+    #     "headers": {}
+    # },
+"rube": {
+    "url": "https://rube.app/mcp",
+    "transport": "streamable_http",
+    "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiJ1c2VyXzAxSzdGM0UzWVBSTThRRkRZOVFaUzdZSE1YIiwib3JnSWQiOiJvcmdfMDFLN0YzRUU4QjRKUVEwOVYwUkQzOU5OWDUiLCJpYXQiOjE3NjMyMjM3Mjh9.lJsWkQ7ojdn6cq6Cf4aye6OAeeZNsIna0-wIH0EBVSg"  # paste your token here
     }
+}
+
 }
 
 # Initialize MultiServerMCPClient for MCP integration
@@ -55,8 +63,8 @@ async def list_mcp_tools():
 try:
     mcp_client = MultiServerMCPClient(MCP_CONFIG)
     print("\n===== MCP CLIENT INITIALIZED =====")
-    print(f"✅ Connected to MCP server: {MCP_CONFIG['google-tools']['url']}")
-    print(f"✅ Using transport: {MCP_CONFIG['google-tools']['transport']}")
+    print(f"✅ Connected to MCP server: {MCP_CONFIG['rube']['url']}")
+    print(f"✅ Using transport: {MCP_CONFIG['rube']['transport']}")
     print("=================================\n")
     
     # List all available tools
